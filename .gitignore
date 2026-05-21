@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+.garminconnect/
+.garth/
+*.log
+.DS_Store
+.idea/
+.vscode/
