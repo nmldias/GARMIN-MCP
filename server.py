@@ -20,6 +20,8 @@ from garminconnect import (
     GarminConnectConnectionError,
     GarminConnectTooManyRequestsError,
 )
+from starlette.requests import Request
+from starlette.responses import PlainTextResponse
 
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 log = logging.getLogger("garmin-mcp")
@@ -108,6 +110,12 @@ if auth_token:
 else:
     mcp = FastMCP("Garmin MCP")
     log.warning("MCP_BEARER_TOKEN not set — server is UNAUTHENTICATED")
+
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request: Request) -> PlainTextResponse:
+    """Unauthenticated liveness probe — the /mcp endpoint requires a token."""
+    return PlainTextResponse("ok")
 
 
 @mcp.tool
