@@ -7,6 +7,7 @@ import io
 import logging
 import os
 import tarfile
+import tempfile
 import threading
 from datetime import date, timedelta
 from typing import Any
@@ -23,7 +24,10 @@ from garminconnect import (
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 log = logging.getLogger("garmin-mcp")
 
-TOKENSTORE = os.environ.get("GARMINTOKENS", "/tmp/.garminconnect")
+# Resolves to /tmp on Linux (Render) and the user temp dir on Windows.
+TOKENSTORE = os.environ.get(
+    "GARMINTOKENS", os.path.join(tempfile.gettempdir(), ".garminconnect")
+)
 
 
 def _bootstrap_tokenstore_from_env() -> None:
@@ -59,22 +63,24 @@ def garmin() -> Garmin:
         if _client is not None:
             return _client
 
+        _bootstrap_tokenstore_from_env()
+        have_tokens = os.path.isdir(TOKENSTORE) and bool(os.listdir(TOKENSTORE))
+
         email = os.environ.get("GARMIN_EMAIL")
         password = os.environ.get("GARMIN_PASSWORD")
-        if not email or not password:
+        if not have_tokens and (not email or not password):
             raise RuntimeError(
-                "GARMIN_EMAIL and GARMIN_PASSWORD must be set in the environment."
+                "No Garmin tokenstore found. Set GARMINTOKENS_BASE64, "
+                "or set both GARMIN_EMAIL and GARMIN_PASSWORD."
             )
-
-        _bootstrap_tokenstore_from_env()
 
         def _no_mfa() -> str:
             raise RuntimeError(
                 "Garmin is requesting MFA but the server is non-interactive. "
-                "Run the bootstrap script locally to populate GARMINTOKENS_BASE64."
+                "Run bootstrap_tokens.py locally to populate GARMINTOKENS_BASE64."
             )
 
-        client = Garmin(email=email, password=password, prompt_mfa=_no_mfa)
+        client = Garmin(email=email or "", password=password or "", prompt_mfa=_no_mfa)
         try:
             client.login(TOKENSTORE)
         except GarminConnectAuthenticationError as exc:

@@ -2,7 +2,7 @@
 
 A Model Context Protocol server that exposes your Garmin Connect data
 (steps, sleep, HR, HRV, stress, body battery, activities, training
-readiness, body composition) to MCP-compatible clients like Claude.
+readiness, body composition) to any MCP-compatible client.
 
 Built with [FastMCP](https://gofastmcp.com) and
 [python-garminconnect](https://github.com/cyberjunky/python-garminconnect).
@@ -28,7 +28,7 @@ Runs over HTTP with bearer-token auth — ready to deploy to Render.
 | `get_activities_by_date` | Activities in a date range, optional type filter |
 | `get_last_n_days_summary` | Daily stats for the last N days |
 
-## Local dev
+## Local dev (macOS / Linux)
 
 ```bash
 pip install -r requirements.txt
@@ -37,6 +37,40 @@ cp .env.example .env
 set -a && source .env && set +a
 python server.py
 ```
+
+## Local dev (Windows / PowerShell)
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+# set credentials for this PowerShell session
+$env:GARMIN_EMAIL     = "you@example.com"
+$env:GARMIN_PASSWORD  = "your-garmin-password"
+$env:MCP_BEARER_TOKEN = "a-long-random-string"   # optional
+
+python server.py
+```
+
+If `Activate.ps1` is blocked, run once:
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+
+To load variables from a `.env` file instead of setting them inline:
+
+```powershell
+Copy-Item .env.example .env   # then edit .env
+Get-Content .env | Where-Object { $_ -match '^\s*[^#].+=' } | ForEach-Object {
+    $name, $value = $_ -split '=', 2
+    Set-Item "Env:$($name.Trim())" $value.Trim()
+}
+```
+
+The token cache path is OS-aware (it lands in your Windows temp dir), so no
+extra config is needed. Override it with the `GARMINTOKENS` env var if you
+want the tokens to persist somewhere permanent.
+
+## Verify it's running
 
 Hit `http://localhost:8000/mcp` to confirm the server is responding (you'll
 get a 4xx from a plain GET — that's expected; MCP clients do POST/SSE).
@@ -73,15 +107,15 @@ python bootstrap_tokens.py
 
 The Garmin OAuth refresh token is good for ~1 year — set it once and forget.
 
-## Connect to Claude
+## Connect an MCP client
 
-Desktop / web (`claude.ai`) → **Settings → Connectors → Add custom connector**:
+Add the server as a custom connector in any MCP-compatible client:
 
 - **URL**: `https://<service>.onrender.com/mcp`
 - **Name**: `Garmin`
-- **Authentication**: Bearer token → paste `MCP_BEARER_TOKEN`
+- **Authentication**: Bearer token → use `MCP_BEARER_TOKEN`
 
-Toggle the connector on inside a chat to use the tools.
+Enable the connector to use the tools.
 
 ## Security notes
 
