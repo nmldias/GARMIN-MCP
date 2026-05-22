@@ -7,6 +7,7 @@ import io
 import logging
 import os
 import tarfile
+import tempfile
 import threading
 from datetime import date, timedelta
 from typing import Any
@@ -23,7 +24,10 @@ from garminconnect import (
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 log = logging.getLogger("garmin-mcp")
 
-TOKENSTORE = os.environ.get("GARMINTOKENS", "/tmp/.garminconnect")
+# Resolves to /tmp on Linux (Render) and the user temp dir on Windows.
+TOKENSTORE = os.environ.get(
+    "GARMINTOKENS", os.path.join(tempfile.gettempdir(), ".garminconnect")
+)
 
 
 def _bootstrap_tokenstore_from_env() -> None:

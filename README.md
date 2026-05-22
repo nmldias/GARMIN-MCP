@@ -28,7 +28,7 @@ Runs over HTTP with bearer-token auth — ready to deploy to Render.
 | `get_activities_by_date` | Activities in a date range, optional type filter |
 | `get_last_n_days_summary` | Daily stats for the last N days |
 
-## Local dev
+## Local dev (macOS / Linux)
 
 ```bash
 pip install -r requirements.txt
@@ -37,6 +37,40 @@ cp .env.example .env
 set -a && source .env && set +a
 python server.py
 ```
+
+## Local dev (Windows / PowerShell)
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+# set credentials for this PowerShell session
+$env:GARMIN_EMAIL     = "you@example.com"
+$env:GARMIN_PASSWORD  = "your-garmin-password"
+$env:MCP_BEARER_TOKEN = "a-long-random-string"   # optional
+
+python server.py
+```
+
+If `Activate.ps1` is blocked, run once:
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+
+To load variables from a `.env` file instead of setting them inline:
+
+```powershell
+Copy-Item .env.example .env   # then edit .env
+Get-Content .env | Where-Object { $_ -match '^\s*[^#].+=' } | ForEach-Object {
+    $name, $value = $_ -split '=', 2
+    Set-Item "Env:$($name.Trim())" $value.Trim()
+}
+```
+
+The token cache path is OS-aware (it lands in your Windows temp dir), so no
+extra config is needed. Override it with the `GARMINTOKENS` env var if you
+want the tokens to persist somewhere permanent.
+
+## Verify it's running
 
 Hit `http://localhost:8000/mcp` to confirm the server is responding (you'll
 get a 4xx from a plain GET — that's expected; MCP clients do POST/SSE).
