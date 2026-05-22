@@ -2,7 +2,7 @@
 
 A Model Context Protocol server that exposes your Garmin Connect data
 (steps, sleep, HR, HRV, stress, body battery, activities, training
-readiness, body composition) to MCP-compatible clients like Claude.
+readiness, body composition) to any MCP-compatible client.
 
 Built with [FastMCP](https://gofastmcp.com) and
 [python-garminconnect](https://github.com/cyberjunky/python-garminconnect).
@@ -107,15 +107,15 @@ python bootstrap_tokens.py
 
 The Garmin OAuth refresh token is good for ~1 year — set it once and forget.
 
-## Connect to Claude
+## Connect an MCP client
 
-Desktop / web (`claude.ai`) → **Settings → Connectors → Add custom connector**:
+Add the server as a custom connector in any MCP-compatible client:
 
 - **URL**: `https://<service>.onrender.com/mcp`
 - **Name**: `Garmin`
-- **Authentication**: Bearer token → paste `MCP_BEARER_TOKEN`
+- **Authentication**: Bearer token → use `MCP_BEARER_TOKEN`
 
-Toggle the connector on inside a chat to use the tools.
+Enable the connector to use the tools.
 
 ## Security notes
 
