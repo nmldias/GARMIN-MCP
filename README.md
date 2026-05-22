@@ -77,6 +77,11 @@ get a 4xx from a plain GET — that's expected; MCP clients do POST/SSE).
 
 ## Deploy to Render
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/nmldias/GARMIN-MCP)
+
+One click deploys the `render.yaml` blueprint — Render then prompts you for the
+environment variables below. Or do it manually:
+
 1. Push this repo to GitHub.
 2. On [render.com](https://render.com): **New → Web Service → Connect GitHub →
    pick this repo**. Render auto-detects `render.yaml`.

@@ -44,7 +44,7 @@ def _bootstrap_tokenstore_from_env() -> None:
     try:
         raw = base64.b64decode(blob)
         with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as tar:
-            tar.extractall(TOKENSTORE)
+            tar.extractall(TOKENSTORE, filter="data")
         log.info("Loaded Garmin tokens from GARMINTOKENS_BASE64 into %s", TOKENSTORE)
     except Exception as exc:  # noqa: BLE001
         log.warning("Failed to extract GARMINTOKENS_BASE64: %s", exc)
