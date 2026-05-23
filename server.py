@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import io
 import logging
@@ -98,6 +99,33 @@ def garmin() -> Garmin:
 
 def _iso(day: str | None) -> str:
     return day or date.today().isoformat()
+
+
+def _date_range(start_date: str, end_date: str) -> list[str]:
+    start = date.fromisoformat(start_date)
+    end = date.fromisoformat(end_date)
+    if end < start:
+        raise ValueError("end_date must be on or after start_date")
+    out: list[str] = []
+    d = start
+    while d <= end:
+        out.append(d.isoformat())
+        d += timedelta(days=1)
+    return out
+
+
+async def _fetch_range(fn, days: list[str], key: str) -> list[dict[str, Any]]:
+    results = await asyncio.gather(
+        *(asyncio.to_thread(fn, d) for d in days),
+        return_exceptions=True,
+    )
+    out: list[dict[str, Any]] = []
+    for d, r in zip(days, results):
+        if isinstance(r, Exception):
+            out.append({"date": d, "error": str(r)})
+        else:
+            out.append({"date": d, key: r})
+    return out
 
 
 auth_token = os.environ.get("MCP_BEARER_TOKEN")
@@ -223,15 +251,62 @@ def get_activities_by_date(
 
 
 @mcp.tool
-def get_last_n_days_summary(days: int = 7) -> list[dict[str, Any]]:
-    """Daily stats for the last N days (default 7). Handy for trend analysis."""
+async def get_sleep_data_range(start_date: str, end_date: str) -> list[dict[str, Any]]:
+    """Nightly sleep analysis for each day in a date range, fetched in parallel."""
+    return await _fetch_range(
+        garmin().get_sleep_data, _date_range(start_date, end_date), "sleep"
+    )
+
+
+@mcp.tool
+async def get_hrv_data_range(start_date: str, end_date: str) -> list[dict[str, Any]]:
+    """Overnight HRV for each day in a date range, fetched in parallel."""
+    return await _fetch_range(
+        garmin().get_hrv_data, _date_range(start_date, end_date), "hrv"
+    )
+
+
+@mcp.tool
+async def get_stress_data_range(start_date: str, end_date: str) -> list[dict[str, Any]]:
+    """Stress levels and durations for each day in a date range, fetched in parallel."""
+    return await _fetch_range(
+        garmin().get_stress_data, _date_range(start_date, end_date), "stress"
+    )
+
+
+@mcp.tool
+async def get_heart_rates_range(start_date: str, end_date: str) -> list[dict[str, Any]]:
+    """Heart-rate samples + resting HR for each day in a date range, fetched in parallel."""
+    return await _fetch_range(
+        garmin().get_heart_rates, _date_range(start_date, end_date), "heart_rates"
+    )
+
+
+@mcp.tool
+async def get_training_readiness_range(
+    start_date: str, end_date: str
+) -> list[dict[str, Any]]:
+    """Training readiness scores for each day in a date range, fetched in parallel."""
+    return await _fetch_range(
+        garmin().get_training_readiness,
+        _date_range(start_date, end_date),
+        "training_readiness",
+    )
+
+
+@mcp.tool
+def get_body_battery_range(start_date: str, end_date: str) -> Any:
+    """Body battery values across a date range (single Garmin API call)."""
+    return garmin().get_body_battery(start_date, end_date)
+
+
+@mcp.tool
+async def get_last_n_days_summary(days: int = 7) -> list[dict[str, Any]]:
+    """Daily stats for the last N days (default 7), fetched in parallel. Handy for trend analysis."""
     c = garmin()
     today = date.today()
-    out: list[dict[str, Any]] = []
-    for i in range(days):
-        d = (today - timedelta(days=i)).isoformat()
-        out.append({"date": d, "stats": c.get_stats(d)})
-    return out
+    iso_days = [(today - timedelta(days=i)).isoformat() for i in range(days)]
+    return await _fetch_range(c.get_stats, iso_days, "stats")
 
 
 if __name__ == "__main__":
